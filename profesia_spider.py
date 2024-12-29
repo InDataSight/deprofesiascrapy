@@ -4,6 +4,13 @@ class ProfesiaSpider(scrapy.Spider):
     name = 'profesia_spider'
     allowed_domains = ['profesia.sk']
     start_urls = ['https://www.profesia.sk/praca/?search_anywhere=data+engineer']
+    #create urls set outside code - init dataset, incremental daily dataset
+    #re-create output
+    #create log
+    #parellel process
+    #document
+    #crawl id and description
+    #possible to crawl more?
 
     def parse(self, response):
         # Step 1: Detect <ul class="list">

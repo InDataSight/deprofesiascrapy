@@ -1,16 +1,10 @@
 import scrapy
+import datetime
 
 class ProfesiaSpider(scrapy.Spider):
     name = 'profesia_spider'
     allowed_domains = ['profesia.sk']
-    start_urls = ['https://www.profesia.sk/praca/?search_anywhere=data+engineer']
-    #create urls set outside code - init dataset, incremental daily dataset
-    #re-create output
-    #create log
-    #parellel process
-    #document
-    #crawl id and description
-    #possible to crawl more?
+    start_urls = ['https://www.profesia.sk/praca/bratislavsky-kraj/plny-uvazok/?count_days=31&offer_agent_flags=8388&search_anywhere=data+engineer&skills[]=73__5_&sort_by=relevance']
 
     def parse(self, response):
         # Step 1: Detect <ul class="list">
@@ -27,24 +21,36 @@ class ProfesiaSpider(scrapy.Spider):
 
         # Step 3: For each <li class="list-row">
         for job_item in job_items:
-            # Step 4: Extract the offer ID from <h2><a>
+            # Steps 4: Extract the offer ID from <h2><a>
             offer_link = job_item.xpath('.//h2/a')
-            if offer_link:
-                offer_id_attr = offer_link.attrib.get('id', '')
-                if offer_id_attr.startswith('offer'):
-                    offer_id = offer_id_attr.replace('offer', '')
-                    self.logger.info(f'Found offer ID: {offer_id}')
-                    # Step 5: Save the offer ID
-                    yield {'offer_id': offer_id}
-                else:
-                    self.logger.warning('Offer ID not in expected format.')
-            else:
-                self.logger.warning('No offer link found in job item.')
+            offer_id = offer_link.attrib.get('id', '').replace('offer', '') if offer_link else None
+
+            # Extract the title
+            title = offer_link.xpath('.//span[@class="title"]/text()').get() if offer_link else None
+
+            # Extract the employer
+            employer = job_item.xpath('.//span[@class="employer"]/text()').get()
+
+            # Extract the money text
+            money_text = job_item.xpath('.//span[@class="label-group"]//span[@class="label label-bordered green half-margin-on-top"]/text()').get()
+
+            # Extract the date published
+            date_published = job_item.xpath('.//span[@class="info"]/strong/text()').get()
+
+            # Log and yield the extracted data
+            self.logger.info(f'Found offer ID: {offer_id}, Title: {title}, Employer: {employer}, Money: {money_text}, Date: {date_published}')
+            yield {
+                'offer_id': offer_id,
+                'title': title,
+                'employer': employer,
+                'money_text': money_text,
+                'date_published': date_published
+            }
 
         # Step 6: Navigate to the next page
         current_page = response.meta.get('page_num', 1)
         next_page_num = current_page + 1
-        next_page_url = f'https://www.profesia.sk/praca/?search_anywhere=data+engineer&page_num={next_page_num}'
+        next_page_url = f'https://www.profesia.sk/praca/bratislavsky-kraj/plny-uvazok/?count_days=31&offer_agent_flags=8388&search_anywhere=data+engineer&skills[]=73__5_&sort_by=relevance&page_num={next_page_num}'
 
         # Attempt to retrieve the next page
         yield scrapy.Request(
@@ -53,3 +59,6 @@ class ProfesiaSpider(scrapy.Spider):
             meta={'page_num': next_page_num},
             dont_filter=True
         )
+
+# To run the spider and save the output with a timestamped filename:
+# scrapy crawl profesia_spider -o offer_ids_$(date +%Y%m%d%H%M%S).json

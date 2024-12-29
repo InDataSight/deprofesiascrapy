@@ -37,9 +37,11 @@ class ProfesiaSpider(scrapy.Spider):
             if not employer:
                 self.logger.warning('Employer not found.')
 
-            # Extract the money text
-            money_text = job_item.xpath('.//span[@class="label-group"]//span[@class="label label-bordered green half-margin-on-top"]/text()').get()
-            if not money_text:
+            # Extract the money text nodes separately and concatenate them
+            money_text_before_svg = job_item.xpath('normalize-space(.//span[@class="label-group"]//span[@class="label label-bordered green half-margin-on-top"]/text()[1])').get()
+            money_text_after_svg = job_item.xpath('normalize-space(.//span[@class="label-group"]//span[@class="label label-bordered green half-margin-on-top"]/text()[2])').get()
+            money_text = f"{money_text_before_svg} {money_text_after_svg}".strip()
+            if not money_text.strip():
                 self.logger.warning('Money text not found.')
 
             # Extract the date published

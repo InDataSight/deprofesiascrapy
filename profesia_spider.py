@@ -20,74 +20,25 @@ class ProfesiaSpider(scrapy.Spider):
         """
         Parse the response from the job listings page and extract job details.
         """
-        # Step 1: Detect <ul class="list">
         job_list = response.xpath('//ul[@class="list"]')
         if not job_list:
             self.logger.info('No job list found. Stopping spider.')
             return
 
-        # Step 2: Detect all <li class="list-row">
         job_items = job_list.xpath('.//li[contains(@class, "list-row")]')
         if not job_items:
             self.logger.info('No job items found on this page.')
             return
 
-        # Step 3: For each <li class="list-row">
         for job_item in job_items:
-            # Step 4: Extract the offer ID from <h2><a>
-            offer_link = job_item.xpath('.//h2/a')
-            offer_id = (
-                offer_link.attrib.get('id', '').replace('offer', '')
-                if offer_link else None
-            )
-            if not offer_id:
-                self.logger.warning('Offer ID not found or in unexpected format.')
-
-            # Extract the title
-            title = (
-                offer_link.xpath('.//span[@class="title"]/text()').get()
-                if offer_link else None
-            )
-            if not title:
-                self.logger.warning('Title not found.')
-
-            # Extract the employer
-            employer = job_item.xpath('.//span[@class="employer"]/text()').get()
-            if not employer:
-                self.logger.warning('Employer not found.')
-
-            # Extract the money text nodes separately and concatenate them
-            money_text_before_svg = job_item.xpath(
-                'normalize-space(.//span[@class="label-group"]//span[@class="label '
-                'label-bordered green half-margin-on-top"]/text()[1])'
-            ).get()
-            money_text_after_svg = job_item.xpath(
-                'normalize-space(.//span[@class="label-group"]//span[@class="label '
-                'label-bordered green half-margin-on-top"]/text()[2])'
-            ).get()
-            money_text = f"{money_text_before_svg} {money_text_after_svg}".strip()
-            if not money_text.strip():
-                self.logger.warning('Money text not found.')
-
-            # Extract the date published
-            date_published = job_item.xpath('.//span[@class="info"]/strong/text()').get()
-            if not date_published:
-                self.logger.warning('Date published not found.')
-
-            # Log and yield the extracted data
+            offer_data = self.extract_offer_data(job_item)
             self.logger.info(
-                f'Found offer ID: {offer_id}, Title: {title}, Employer: {employer}, '
-                f'Money: {money_text}, Date: {date_published}'
+                f'Found offer ID: {offer_data["offer_id"]}, Title: {offer_data["title"]}, '
+                f'Employer: {offer_data["employer"]}, Money: {offer_data["money_text"]}, '
+                f'Date: {offer_data["date_published"]}'
             )
-            yield {
-                'offer_id': offer_id,
-                'title': title,
-                'employer': employer,
-                'money_text': money_text,
-                'date_published': date_published
-            }
+            yield offer_data
 
-        # Step 6: Navigate to the next page
         current_page = response.meta.get('page_num', 1)
         next_page_num = current_page + 1
         next_page_url = (
@@ -96,13 +47,53 @@ class ProfesiaSpider(scrapy.Spider):
             f'&sort_by=relevance&page_num={next_page_num}'
         )
 
-        # Attempt to retrieve the next page
         yield scrapy.Request(
             url=next_page_url,
             callback=self.parse,
             meta={'page_num': next_page_num},
             dont_filter=True
         )
+
+    def extract_offer_data(self, job_item):
+        """
+        Extract offer data from a job item.
+        """
+        offer_link = job_item.xpath('.//h2/a')
+        offer_id = offer_link.attrib.get('id', '').replace('offer', '') if offer_link else None
+        if not offer_id:
+            self.logger.warning('Offer ID not found or in unexpected format.')
+
+        title = offer_link.xpath('.//span[@class="title"]/text()').get() if offer_link else None
+        if not title:
+            self.logger.warning('Title not found.')
+
+        employer = job_item.xpath('.//span[@class="employer"]/text()').get()
+        if not employer:
+            self.logger.warning('Employer not found.')
+
+        money_text_before_svg = job_item.xpath(
+            'normalize-space(.//span[@class="label-group"]//span[@class="label '
+            'label-bordered green half-margin-on-top"]/text()[1])'
+        ).get()
+        money_text_after_svg = job_item.xpath(
+            'normalize-space(.//span[@class="label-group"]//span[@class="label '
+            'label-bordered green half-margin-on-top"]/text()[2])'
+        ).get()
+        money_text = f"{money_text_before_svg} {money_text_after_svg}".strip()
+        if not money_text.strip():
+            self.logger.warning('Money text not found.')
+
+        date_published = job_item.xpath('.//span[@class="info"]/strong/text()').get()
+        if not date_published:
+            self.logger.warning('Date published not found.')
+
+        return {
+            'offer_id': offer_id,
+            'title': title,
+            'employer': employer,
+            'money_text': money_text,
+            'date_published': date_published
+        }
 
 # To run the spider and save the output with a timestamped filename:
 # scrapy crawl profesia_spider -o offer_ids_$(date +%Y%m%d%H%M%S).json

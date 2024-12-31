@@ -52,13 +52,18 @@ if [ ! -f "$logfileA" ]; then
 fi
 echo "$json_file,$(date +%Y-%m-%dT%H:%M:%S)," >> "$logfileA"
 
-# Copy the JSON file to blob storage using azcopy
+# Copy the JSON file to blob storage
 echo "Copying JSON file to blob storage..."
-azcopy copy "$json_file" "$blob_storage_path"
+az storage blob upload \
+  --account-name "$blob_storage_account" \
+  --container-name "$blob_container_name" \
+  --name "$json_file" \
+  --file "$blob_storage_path" \
+  --auth-mode login
 
 if [ $? -eq 0 ]; then
     # Update logfileA with the copied filename
-    sed -i "s|^$json_file,.*|&$json_file|" "$logfileA"
+    sed -i '' "s|^$json_file,.*|&$json_file|" "$logfileA"
 else
     echo "Failed to copy JSON file to blob storage."
     exit 1

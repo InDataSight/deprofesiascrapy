@@ -12,7 +12,7 @@ cd ~/profesiascrapy/profesia_crawler/profesia_crawler/spiders/
 # Define variables
 json_file="offer_ids_$(date +%Y%m%d%H%M%S).json"
 detailedcrawlerlist="detailedcrawlerlist.csv"
-logfileA="logfileA.csv"
+logfile="ExtractCopiedData.log"
 blob_storage_account="scrapyprofesia"
 blob_container_name="profesialistsdata"
 blob_storage_path="/home/peter.bizik/profesiascrapy/profesia_crawler/profesia_crawler/spiders/$json_file"
@@ -29,13 +29,11 @@ fi
 # Analyze the JSON file using jq
 echo "Basic JSON analysis:"
 total_entries=$(jq '. | length' "$json_file")
-unique_employers=$(jq '[.[] | .employer] | unique | length' "$json_file")
-salary_ranges=$(jq '[.[] | .money_text] | unique' "$json_file")
+unique_employers=$(jq '[.[] | .employer] | unique' "$json_file")
 
 echo "Total entries: $total_entries"
-echo "Unique employers: $unique_employers"
-echo "Salary ranges:"
-echo "$salary_ranges"
+echo "Unique employers:"
+echo "$unique_employers"
 
 # Extract offer IDs and update detailedcrawlerlist
 echo "Updating detailedcrawlerlist..."
@@ -45,12 +43,12 @@ jq -r '.[] | select(.offer_id != null) | .offer_id' "$json_file" | while read -r
     fi
 done
 
-# Add entry to logfileA
-echo "Adding entry to logfileA..."
-if [ ! -f "$logfileA" ]; then
-    echo "filename created,datetime,filename copied" > "$logfileA"
+# Add entry to ExtractCopiedData.log
+echo "Adding entry to ExtractCopiedData.log..."
+if [ ! -f "$logfile" ]; then
+    echo "filename created,datetime,filename copied" > "$logfile"
 fi
-echo "$json_file,$(date +%Y-%m-%dT%H:%M:%S)," >> "$logfileA"
+echo "$json_file,$(date +%Y-%m-%dT%H:%M:%S)," >> "$logfile"
 
 # Copy the JSON file to blob storage
 echo "Copying JSON file to blob storage..."
@@ -62,8 +60,8 @@ az storage blob upload \
   --auth-mode login
 
 if [ $? -eq 0 ]; then
-    # Update logfileA with the copied filename
-    sed -i '' "s|^$json_file,.*|&$json_file|" "$logfileA"
+    # Update ExtractCopiedData.log with the copied filename
+    sed -i "s|^$json_file,.*|&$json_file|" "$logfile"
 else
     echo "Failed to copy JSON file to blob storage."
     exit 1

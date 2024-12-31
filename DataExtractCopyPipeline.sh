@@ -28,7 +28,14 @@ fi
 
 # Analyze the JSON file using jq
 echo "Basic JSON analysis:"
-jq '.' "$json_file"
+total_entries=$(jq '. | length' "$json_file")
+unique_employers=$(jq '[.[] | .employer] | unique | length' "$json_file")
+salary_ranges=$(jq '[.[] | .money_text] | unique' "$json_file")
+
+echo "Total entries: $total_entries"
+echo "Unique employers: $unique_employers"
+echo "Salary ranges:"
+echo "$salary_ranges"
 
 # Extract offer IDs and update detailedcrawlerlist
 echo "Updating detailedcrawlerlist..."
@@ -45,24 +52,19 @@ if [ ! -f "$logfileA" ]; then
 fi
 echo "$json_file,$(date +%Y-%m-%dT%H:%M:%S)," >> "$logfileA"
 
-# Copy the JSON file to blob storage
+# Copy the JSON file to blob storage using azcopy
 echo "Copying JSON file to blob storage..."
-az storage blob upload \
-  --account-name "$blob_storage_account" \
-  --container-name "$blob_container_name" \
-  --name "$json_file" \
-  --file "$blob_storage_path" \
-  --auth-mode login
+azcopy copy "$json_file" "$blob_storage_path"
 
 if [ $? -eq 0 ]; then
     # Update logfileA with the copied filename
-    sed -i '' "s|^$json_file,.*|&$json_file|" "$logfileA"
+    sed -i "s|^$json_file,.*|&$json_file|" "$logfileA"
 else
     echo "Failed to copy JSON file to blob storage."
     exit 1
 fi
 
-# Compress the JSON file using pkzip
+# Compress the JSON file using zip
 echo "Compressing JSON file..."
 zip "$json_file.zip" "$json_file"
 if [ $? -eq 0 ]; then

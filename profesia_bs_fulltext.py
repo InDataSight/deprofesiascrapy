@@ -1,10 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 import sys
-import logging
-
-# Configure logging
-logging.basicConfig(filename='extract_text.log', level=logging.ERROR, format='%(asctime)s %(levelname)s:%(message)s')
 
 def extract_text_from_url(url, output_file):
     try:
@@ -22,15 +18,13 @@ def extract_text_from_url(url, output_file):
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(text_content)
     except requests.exceptions.RequestException as e:
-        logging.error(f'Failed to retrieve the page: {url}. Error: {e}')
         print(f'Failed to retrieve the page: {url}. Error: {e}')
     except Exception as e:
-        logging.error(f'An error occurred while processing the page: {url}. Error: {e}')
         print(f'An error occurred while processing the page: {url}. Error: {e}')
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python extract_text.py <url> <output_file>")
+        print("Usage: python profesia_bs_fulltext.py <url> <output_file>")
         sys.exit(1)
 
     url = sys.argv[1]

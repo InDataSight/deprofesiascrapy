@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define variables
-detailedcrawlerlist="detailedcrawlerlist.csv"
+detailedcrawlerlist="/home/peter.bizik/profesiascrapy/profesia_crawler/profesia_crawler/spiders/detailedcrawlerlist.csv"
 blob_storage_account="scrapyprofesia"
 blob_container_name="profesiafulldata"
 python_script="profesia_bs_fulltext.py"

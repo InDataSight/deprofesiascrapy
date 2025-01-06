@@ -29,11 +29,23 @@ fi
 # Analyze the JSON file using jq
 echo "Basic JSON analysis:"
 total_entries=$(jq '. | length' "$json_file")
-unique_employers=$(jq '[.[] | .employer] | unique' "$json_file")
+
+# Sum of the .title for each .employer and order by the sum value
+employer_title_counts=$(jq -r '
+  group_by(.employer) |
+  map({
+    employer: .[0].employer,
+    title_count: map(select(.title != null) | .title) | length
+  }) |
+  sort_by(.title_count) |
+  reverse' "$json_file")
+
+# Extract unique employers and their title counts
+unique_employers_with_counts=$(echo "$employer_title_counts" | jq -r '.[] | "\(.employer), \(.title_count)"')
 
 echo "Total entries: $total_entries"
-echo "Unique employers:"
-echo "$unique_employers"
+echo "Unique employers with sum of titles:"
+echo "$unique_employers_with_counts"
 
 # Extract offer IDs and update detailedcrawlerlist
 echo "Updating detailedcrawlerlist..."

@@ -5,6 +5,9 @@ import re
 from datetime import datetime, timedelta
 from dataiku import pandasutils as pdu
 
+# Extract date from dataset name and convert it to a standard format
+DATASET_NAME = "offer_ids_20241231101657"
+
 def calculate_datetime(date_published, log_datetime_str):
     """
     Python equivalent of the Bash function to calculate the actual datetime
@@ -61,19 +64,13 @@ def calculate_datetime(date_published, log_datetime_str):
 offer_ids_20241231101657 = dataiku.Dataset("offer_ids_20241231101657")
 offer_ids_20241231101657_df = offer_ids_20241231101657.get_dataframe()
 
-# Compute recipe outputs from inputs
-# TODO: Replace this part by your actual code that computes the output, as a Pandas dataframe
-# NB: DSS also supports other kinds of APIs for reading and writing data. Please see doc.
-
 # Replace null values in the "money_text" column with 0
 offer_ids_20241231101657_df["money_text"] = offer_ids_20241231101657_df["money_text"].fillna(0)
 
 # For this sample code, simply copy input to output, but drop other NaNs
 offer_ids_extracted_df = offer_ids_20241231101657_df.dropna()
 
-# Extract date from dataset name and convert it to a standard format
-dataset_name = "offer_ids_20241231101657"
-match = re.search(r'(\d{14})', dataset_name)
+match = re.search(r'(\d{14})', DATASET_NAME)
 if match:
     date_str = match.group(1)
     parsed_date = datetime.strptime(date_str, "%Y%m%d%H%M%S").strftime("%Y-%m-%dT%H:%M:%S")
